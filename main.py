@@ -134,7 +134,7 @@ def ovladani_forev():
             else :
                 P8_time=control.millis()
                 PCAmotor.motor_run(PCAmotor.Motors.M1, 100)
-                PCAmotor.motor_run(PCAmotor.Motors.M4, -100)
+                PCAmotor.motor_run(PCAmotor.Motors.M4, -120)
         elif pins.digital_read_pin(DigitalPin.P15) == 1:
             #left = True
             #if right == True:

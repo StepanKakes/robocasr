@@ -151,7 +151,7 @@ forever(function ovladani_forev() {
             } else {
                 P8_time = control.millis()
                 PCAmotor.MotorRun(PCAmotor.Motors.M1, 100)
-                PCAmotor.MotorRun(PCAmotor.Motors.M4, -100)
+                PCAmotor.MotorRun(PCAmotor.Motors.M4, -120)
             }
             
         } else if (pins.digitalReadPin(DigitalPin.P15) == 1) {
