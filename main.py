@@ -1,24 +1,23 @@
 speed_factor = 80
 right = False
 left = False
+L_sensor = DigitalPin.P15
+R_sensor = DigitalPin.P13
+F_sensor = DigitalPin.P8
 prevodovka = 0 #0 - manual, 1 - automat
 pojistka = False #pojistka pro zatáčení
-speed=120
-counter=0
-P15_time=0
-P8_time=0
-both_time=0
+
 
 bluetooth.start_uart_service()
-pins.set_pull(DigitalPin.P8, PinPullMode.PULL_NONE)
-pins.set_pull(DigitalPin.P13, PinPullMode.PULL_NONE)
-pins.set_pull(DigitalPin.P15, PinPullMode.PULL_NONE)
-bluetooth.start_accelerometer_service()
-bluetooth.start_button_service()
-bluetooth.start_io_pin_service()
-bluetooth.start_led_service()
-bluetooth.start_temperature_service()
-bluetooth.start_magnetometer_service()
+pins.set_pull(F_sensor, PinPullMode.PULL_NONE)
+pins.set_pull(R_sensor, PinPullMode.PULL_NONE)
+pins.set_pull(L_sensor, PinPullMode.PULL_NONE)
+#bluetooth.start_accelerometer_service()
+#bluetooth.start_button_service()
+#bluetooth.start_io_pin_service()
+#bluetooth.start_led_service()
+#bluetooth.start_temperature_service()
+#bluetooth.start_magnetometer_service()
 
 def motor_run(left = 0, right = 0):
     PCAmotor.motor_run(PCAmotor.Motors.M2,left)
@@ -32,19 +31,17 @@ def on_bluetooth_disconnected():
     basic.show_icon(IconNames.SAD)
 bluetooth.on_bluetooth_disconnected(on_bluetooth_disconnected)
 
-def on_button_pressed_a():
-    global prevodovka
-    if prevodovka == 0:
-        prevodovka = 1
-    else:
-        prevodovka = 0
-    basic.show_icon(IconNames.HEART)
-input.on_button_pressed(Button.A, on_button_pressed_a)
+def onIn_background():
+    def on_button_pressed_a():
+        global prevodovka
+        if prevodovka == 0:
+            prevodovka = 1
+        else:
+            prevodovka = 0
+        basic.show_icon(IconNames.HEART)
+    input.on_button_pressed(Button.A, on_button_pressed_a)
+control.in_background(onIn_background)
 
-#def on_forever():
-    
-    #print(control.event_value())
-#basic.forever(on_forever)
 
 def on_mes_dpad_controller_id_microbit_evt():
     global prevodovka, pojistka, left, right
@@ -111,26 +108,13 @@ control.on_event(EventBusSource.MES_DPAD_CONTROLLER_ID,EventBusValue.MICROBIT_EV
 
 #autonomni rizeni
 def ovladani_forev():
-    global prevodovka, left, right, counter, both_time,P15_time,P8_time
+    global prevodovka, left, right
     
     if prevodovka == 1:
         if sonar.ping(DigitalPin.P0, DigitalPin.P1, PingUnit.CENTIMETERS)<= 15:
-            motor_run(120,-255)
-            basic.pause(200)
-            motor_run(120,255)
-            basic.pause(1000)
-            motor_run(-100,200)
-            basic.pause(250)
-            motor_run(120,255)
-            basic.pause(1300)
-            motor_run(-100,200)
-            basic.pause(250)
-            motor_run(140,255)
-            basic.pause(500)
-            motor_run(120,-255)
-            basic.pause(200)
+            
        
-        #elif pins.digital_read_pin(DigitalPin.P8) == 1 and pins.digital_read_pin(DigitalPin.P15) == 1:
+        #elif pins.digital_read_pin(F_sensor) == 1 and pins.digital_read_pin(L_sensor) == 1:
         #    both_time=control.millis()
         #    if left==True:
         #        PCAmotor.motor_run(PCAmotor.Motors.M2, -120)
@@ -141,7 +125,7 @@ def ovladani_forev():
         #    #else:
         
         
-        if pins.digital_read_pin(DigitalPin.P8) == 0 and pins.digital_read_pin(DigitalPin.P13) == 0 and pins.digital_read_pin(DigitalPin.P15) == 0:
+        if pins.digital_read_pin(F_sensor) == 0 and pins.digital_read_pin(R_sensor) == 0 and pins.digital_read_pin(L_sensor) == 0:
             print(control.millis())
             if left==True:
                 motor_run(-130,100)
@@ -156,13 +140,13 @@ def ovladani_forev():
             else:
                 motor_run(100,120)
                 basic.pause(150)
-        elif pins.digital_read_pin(DigitalPin.P13) == 0:
+        elif pins.digital_read_pin(R_sensor) == 0:
             P8_time=control.millis()
             #print(control.millis())
             motor_run(100,-80)
-        elif pins.digital_read_pin(DigitalPin.P15) == 0:
+        elif pins.digital_read_pin(L_sensor) == 0:
              motor_run(-80,120)
-        elif pins.digital_read_pin(DigitalPin.P8) == 0:
+        elif pins.digital_read_pin(F_sensor) == 0:
            motor_run(100,120)
 forever(ovladani_forev) 
 

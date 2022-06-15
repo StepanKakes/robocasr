@@ -1,19 +1,17 @@
 let speed_factor = 80
 let right = false
 let left = false
+let L_sensor = DigitalPin.P15
+let R_sensor = DigitalPin.P13
+let F_sensor = DigitalPin.P8
 let prevodovka = 0
 // 0 - manual, 1 - automat
 let pojistka = false
 // pojistka pro zatáčení
-let speed = 120
-let counter = 0
-let P15_time = 0
-let P8_time = 0
-let both_time = 0
 bluetooth.startUartService()
-pins.setPull(DigitalPin.P8, PinPullMode.PullNone)
-pins.setPull(DigitalPin.P13, PinPullMode.PullNone)
-pins.setPull(DigitalPin.P15, PinPullMode.PullNone)
+pins.setPull(F_sensor, PinPullMode.PullNone)
+pins.setPull(R_sensor, PinPullMode.PullNone)
+pins.setPull(L_sensor, PinPullMode.PullNone)
 bluetooth.startAccelerometerService()
 bluetooth.startButtonService()
 bluetooth.startIOPinService()
@@ -126,6 +124,7 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
 })
 // autonomni rizeni
 forever(function ovladani_forev() {
+    let P8_time: number;
     
     if (prevodovka == 1) {
         if (sonar.ping(DigitalPin.P0, DigitalPin.P1, PingUnit.Centimeters) <= 15) {
@@ -145,7 +144,7 @@ forever(function ovladani_forev() {
             basic.pause(200)
         }
         
-        // elif pins.digital_read_pin(DigitalPin.P8) == 1 and pins.digital_read_pin(DigitalPin.P15) == 1:
+        // elif pins.digital_read_pin(F_sensor) == 1 and pins.digital_read_pin(L_sensor) == 1:
         //     both_time=control.millis()
         //     if left==True:
         //         PCAmotor.motor_run(PCAmotor.Motors.M2, -120)
@@ -154,7 +153,7 @@ forever(function ovladani_forev() {
         //         PCAmotor.motor_run(PCAmotor.Motors.M2, 120)
         //         PCAmotor.motor_run(PCAmotor.Motors.M4, -120)
         //     #else:
-        if (pins.digitalReadPin(DigitalPin.P8) == 0 && pins.digitalReadPin(DigitalPin.P13) == 0 && pins.digitalReadPin(DigitalPin.P15) == 0) {
+        if (pins.digitalReadPin(F_sensor) == 0 && pins.digitalReadPin(R_sensor) == 0 && pins.digitalReadPin(L_sensor) == 0) {
             console.log(control.millis())
             if (left == true) {
                 motor_run(-130, 100)
@@ -171,13 +170,13 @@ forever(function ovladani_forev() {
                 basic.pause(150)
             }
             
-        } else if (pins.digitalReadPin(DigitalPin.P13) == 0) {
+        } else if (pins.digitalReadPin(R_sensor) == 0) {
             P8_time = control.millis()
             // print(control.millis())
             motor_run(100, -80)
-        } else if (pins.digitalReadPin(DigitalPin.P15) == 0) {
+        } else if (pins.digitalReadPin(L_sensor) == 0) {
             motor_run(-80, 120)
-        } else if (pins.digitalReadPin(DigitalPin.P8) == 0) {
+        } else if (pins.digitalReadPin(F_sensor) == 0) {
             motor_run(100, 120)
         }
         
