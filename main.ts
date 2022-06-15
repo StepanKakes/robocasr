@@ -1,4 +1,3 @@
-let speed_factor = 80
 let right = false
 let left = false
 let L_sensor = DigitalPin.P15
@@ -8,19 +7,37 @@ let prevodovka = 0
 // 0 - manual, 1 - automat
 let pojistka = false
 // pojistka pro zatáčení
+let speed = 1.0
 bluetooth.startUartService()
 pins.setPull(F_sensor, PinPullMode.PullNone)
 pins.setPull(R_sensor, PinPullMode.PullNone)
 pins.setPull(L_sensor, PinPullMode.PullNone)
-bluetooth.startAccelerometerService()
-bluetooth.startButtonService()
-bluetooth.startIOPinService()
-bluetooth.startLEDService()
-bluetooth.startTemperatureService()
-bluetooth.startMagnetometerService()
-function motor_run(left: number = 0, right: number = 0) {
-    PCAmotor.MotorRun(PCAmotor.Motors.M2, left)
-    PCAmotor.MotorRun(PCAmotor.Motors.M4, right)
+// bluetooth.start_accelerometer_service()
+// bluetooth.start_button_service()
+// bluetooth.start_io_pin_service()
+// bluetooth.start_led_service()
+// bluetooth.start_temperature_service()
+// bluetooth.start_magnetometer_service()
+function motor_run(left: number, right: number, speed: number = 1) {
+    PCAmotor.MotorRun(PCAmotor.Motors.M2, left * speed)
+    PCAmotor.MotorRun(PCAmotor.Motors.M4, right * speed)
+}
+
+function objetí() {
+    motor_run(120, -255)
+    basic.pause(200)
+    motor_run(120, 255)
+    basic.pause(1000)
+    motor_run(-100, 200)
+    basic.pause(250)
+    motor_run(120, 255)
+    basic.pause(1300)
+    motor_run(-100, 200)
+    basic.pause(250)
+    motor_run(140, 255)
+    basic.pause(500)
+    motor_run(120, -255)
+    basic.pause(200)
 }
 
 bluetooth.onBluetoothConnected(function on_bluetooth_connected() {
@@ -29,22 +46,24 @@ bluetooth.onBluetoothConnected(function on_bluetooth_connected() {
 bluetooth.onBluetoothDisconnected(function on_bluetooth_disconnected() {
     basic.showIcon(IconNames.Sad)
 })
-input.onButtonPressed(Button.A, function on_button_pressed_a() {
-    
-    if (prevodovka == 0) {
-        prevodovka = 1
-    } else {
-        prevodovka = 0
-    }
-    
-    basic.showIcon(IconNames.Heart)
+control.inBackground(function onIn_background() {
+    input.onButtonPressed(Button.A, function on_button_pressed_a() {
+        
+        if (prevodovka == 0) {
+            prevodovka = 1
+            basic.clearScreen()
+            whaleysans.showNumber(prevodovka)
+        } else {
+            prevodovka = 0
+            motor_run(0, 0)
+            basic.clearScreen()
+            whaleysans.showNumber(prevodovka)
+        }
+        
+    })
 })
-// def on_forever():
-// print(control.event_value())
-// basic.forever(on_forever)
 control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EVT_ANY, function on_mes_dpad_controller_id_microbit_evt() {
     
-    console.log(speed_factor)
     // prepinani prevodovky
     if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_1_DOWN) {
         if (prevodovka == 0) {
@@ -54,13 +73,21 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
             motor_run(0, 0)
         }
         
-        console.log(prevodovka)
+        whaleysans.showNumber(prevodovka)
     }
     
     // manualni rizeni
+    if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_3_DOWN) {
+        speed -= 0.05
+        basic.showNumber(speed)
+    } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_4_DOWN) {
+        speed += 0.05
+        basic.showNumber(speed)
+    }
+    
     if (prevodovka == 0) {
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_A_DOWN) {
-            motor_run(120, 255)
+            motor_run(120, 255, speed)
             pojistka = true
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_A_UP) {
             pojistka = false
@@ -68,7 +95,7 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_B_DOWN) {
-            motor_run(-120, -255)
+            motor_run(-120, -255, speed)
             pojistka = true
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_B_UP) {
             motor_run(0, 0)
@@ -76,25 +103,25 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_DOWN) {
-            motor_run(-120, 255)
+            motor_run(-120, 255, speed)
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_DOWN) {
-            motor_run(120, -255)
+            motor_run(120, -255, speed)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_UP && pojistka == false) {
             motor_run(0, 0)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_UP && pojistka == false) {
             motor_run(0, 0)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_UP && pojistka == true) {
-            motor_run(120, 255)
+            motor_run(120, 255, speed)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_UP && pojistka == true) {
-            motor_run(120, 255)
+            motor_run(120, 255, speed)
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_DOWN && pojistka == true) {
-            motor_run(120, 125)
+            motor_run(120, 125, speed)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_DOWN && pojistka == true) {
-            motor_run(115, 255)
+            motor_run(115, 255, speed)
         }
         
     } else if (prevodovka == 1) {
@@ -124,36 +151,20 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
 })
 // autonomni rizeni
 forever(function ovladani_forev() {
-    let P8_time: number;
     
     if (prevodovka == 1) {
         if (sonar.ping(DigitalPin.P0, DigitalPin.P1, PingUnit.Centimeters) <= 15) {
-            motor_run(120, -255)
-            basic.pause(200)
-            motor_run(120, 255)
-            basic.pause(1000)
-            motor_run(-100, 200)
-            basic.pause(250)
-            motor_run(120, 255)
-            basic.pause(1300)
-            motor_run(-100, 200)
-            basic.pause(250)
-            motor_run(140, 255)
-            basic.pause(500)
-            motor_run(120, -255)
-            basic.pause(200)
-        }
-        
-        // elif pins.digital_read_pin(F_sensor) == 1 and pins.digital_read_pin(L_sensor) == 1:
-        //     both_time=control.millis()
-        //     if left==True:
-        //         PCAmotor.motor_run(PCAmotor.Motors.M2, -120)
-        //         PCAmotor.motor_run(PCAmotor.Motors.M4, 120)
-        //     elif right==True:
-        //         PCAmotor.motor_run(PCAmotor.Motors.M2, 120)
-        //         PCAmotor.motor_run(PCAmotor.Motors.M4, -120)
-        //     #else:
-        if (pins.digitalReadPin(F_sensor) == 0 && pins.digitalReadPin(R_sensor) == 0 && pins.digitalReadPin(L_sensor) == 0) {
+            objetí()
+        } else if (pins.digitalReadPin(F_sensor) == 0 && pins.digitalReadPin(R_sensor) == 0 && pins.digitalReadPin(L_sensor) == 0) {
+            // elif pins.digital_read_pin(F_sensor) == 1 and pins.digital_read_pin(L_sensor) == 1:
+            //     both_time=control.millis()
+            //     if left==True:
+            //         PCAmotor.motor_run(PCAmotor.Motors.M2, -120)
+            //         PCAmotor.motor_run(PCAmotor.Motors.M4, 120)
+            //     elif right==True:
+            //         PCAmotor.motor_run(PCAmotor.Motors.M2, 120)
+            //         PCAmotor.motor_run(PCAmotor.Motors.M4, -120)
+            //     #else:
             console.log(control.millis())
             if (left == true) {
                 motor_run(-130, 100)
@@ -166,18 +177,16 @@ forever(function ovladani_forev() {
                 motor_run(100, 120)
                 basic.pause(150)
             } else {
-                motor_run(100, 120)
+                motor_run(100, 120, speed)
                 basic.pause(150)
             }
             
         } else if (pins.digitalReadPin(R_sensor) == 0) {
-            P8_time = control.millis()
-            // print(control.millis())
-            motor_run(100, -80)
+            motor_run(100, -80, speed)
         } else if (pins.digitalReadPin(L_sensor) == 0) {
-            motor_run(-80, 120)
+            motor_run(-80, 120, speed)
         } else if (pins.digitalReadPin(F_sensor) == 0) {
-            motor_run(100, 120)
+            motor_run(100, 120, speed)
         }
         
     }
