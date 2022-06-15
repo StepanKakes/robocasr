@@ -5,13 +5,14 @@ let prevodovka = 0
 // 0 - manual, 1 - automat
 let pojistka = false
 // pojistka pro zatáčení
-let speed = 100
+let speed = 120
 let counter = 0
 let P15_time = 0
 let P8_time = 0
 let both_time = 0
 bluetooth.startUartService()
 pins.setPull(DigitalPin.P8, PinPullMode.PullNone)
+pins.setPull(DigitalPin.P13, PinPullMode.PullNone)
 pins.setPull(DigitalPin.P15, PinPullMode.PullNone)
 bluetooth.startAccelerometerService()
 bluetooth.startButtonService()
@@ -19,9 +20,9 @@ bluetooth.startIOPinService()
 bluetooth.startLEDService()
 bluetooth.startTemperatureService()
 bluetooth.startMagnetometerService()
-function motor_run(left: number = 0, right: number = 0, speed_factor: number = 80) {
-    PCAmotor.MotorRun(PCAmotor.Motors.M1, Math.map(Math.constrain(left * (speed_factor / 100), -100, 100), -100, 100, -150, 150))
-    PCAmotor.MotorRun(PCAmotor.Motors.M4, Math.map(Math.constrain(right * (speed_factor / 100), -100, 100), -100, 100, -255, 255))
+function motor_run(left: number = 0, right: number = 0) {
+    PCAmotor.MotorRun(PCAmotor.Motors.M2, left)
+    PCAmotor.MotorRun(PCAmotor.Motors.M4, right)
 }
 
 bluetooth.onBluetoothConnected(function on_bluetooth_connected() {
@@ -58,14 +59,10 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
         console.log(prevodovka)
     }
     
-    if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_3_DOWN) {
-        speed_factor -= 10
-    }
-    
     // manualni rizeni
     if (prevodovka == 0) {
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_A_DOWN) {
-            motor_run(100, 100, speed_factor)
+            motor_run(120, 255)
             pojistka = true
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_A_UP) {
             pojistka = false
@@ -73,7 +70,7 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_B_DOWN) {
-            motor_run(-100, -100, speed_factor)
+            motor_run(-120, -255)
             pojistka = true
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_B_UP) {
             motor_run(0, 0)
@@ -81,25 +78,47 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_DOWN) {
-            motor_run(-100, 100)
+            motor_run(-120, 255)
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_DOWN) {
-            motor_run(100, -100)
+            motor_run(120, -255)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_UP && pojistka == false) {
             motor_run(0, 0)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_UP && pojistka == false) {
             motor_run(0, 0)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_UP && pojistka == true) {
-            motor_run(100, 100)
+            motor_run(120, 255)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_UP && pojistka == true) {
-            motor_run(100, 100)
+            motor_run(120, 255)
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_DOWN && pojistka == true) {
-            motor_run(100, 50)
+            motor_run(120, 125)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_DOWN && pojistka == true) {
-            motor_run(50, 100)
+            motor_run(115, 255)
+        }
+        
+    } else if (prevodovka == 1) {
+        //  autonomní ovládání
+        // if control.event_value() == EventBusValue.MES_DPAD_BUTTON_A_DOWN:
+        //     pojistka = True
+        // elif control.event_value() == EventBusValue.MES_DPAD_BUTTON_A_UP:
+        //     pojistka = False
+        // if control.event_value() == EventBusValue.MES_DPAD_BUTTON_B_DOWN:
+        //     pojistka = True
+        // elif control.event_value() == EventBusValue.MES_DPAD_BUTTON_B_UP:
+        //    pojistka = False
+        if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_DOWN) {
+            left = true
+        }
+        
+        if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_DOWN) {
+            right = true
+        } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_UP) {
+            right = false
+        } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_UP) {
+            left = false
         }
         
     }
@@ -109,72 +128,57 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
 forever(function ovladani_forev() {
     
     if (prevodovka == 1) {
-        if (pins.digitalReadPin(DigitalPin.P8) == 0 && pins.digitalReadPin(DigitalPin.P15) == 0) {
-            PCAmotor.MotorRun(PCAmotor.Motors.M1, 100)
-            PCAmotor.MotorRun(PCAmotor.Motors.M4, 100)
-        } else if (pins.digitalReadPin(DigitalPin.P8) == 1 && pins.digitalReadPin(DigitalPin.P15) == 1) {
-            both_time = control.millis()
-        } else if (pins.digitalReadPin(DigitalPin.P8) == 1) {
-            //     if left==True:
-            //         PCAmotor.motor_run(PCAmotor.Motors.M1, -100)
-            //         PCAmotor.motor_run(PCAmotor.Motors.M4, 100)
-            //     elif right==True:
-            //         PCAmotor.motor_run(PCAmotor.Motors.M1, 100)
-            //         PCAmotor.motor_run(PCAmotor.Motors.M4, -100)
-            //     #else:
-            //     #if control.millis()-P8_time<=550 or control.millis()-P15_time<=550:
-            //     #    counter+=1
-            //     #else:
-            //     #    counter=0
-            //     #if counter==2:
-            //     #    counter=0
-            //     #PCAmotor.motor_run(PCAmotor.Motors.M1, 70)
-            //     #PCAmotor.motor_run(PCAmotor.Motors.M4, 70)
-            right = true
+        if (sonar.ping(DigitalPin.P0, DigitalPin.P1, PingUnit.Centimeters) <= 15) {
+            motor_run(120, -255)
+            basic.pause(200)
+            motor_run(120, 255)
+            basic.pause(1000)
+            motor_run(-100, 200)
+            basic.pause(250)
+            motor_run(120, 255)
+            basic.pause(1300)
+            motor_run(-100, 200)
+            basic.pause(250)
+            motor_run(140, 255)
+            basic.pause(500)
+            motor_run(120, -255)
+            basic.pause(200)
+        }
+        
+        // elif pins.digital_read_pin(DigitalPin.P8) == 1 and pins.digital_read_pin(DigitalPin.P15) == 1:
+        //     both_time=control.millis()
+        //     if left==True:
+        //         PCAmotor.motor_run(PCAmotor.Motors.M2, -120)
+        //         PCAmotor.motor_run(PCAmotor.Motors.M4, 120)
+        //     elif right==True:
+        //         PCAmotor.motor_run(PCAmotor.Motors.M2, 120)
+        //         PCAmotor.motor_run(PCAmotor.Motors.M4, -120)
+        //     #else:
+        if (pins.digitalReadPin(DigitalPin.P8) == 0 && pins.digitalReadPin(DigitalPin.P13) == 0 && pins.digitalReadPin(DigitalPin.P15) == 0) {
+            console.log(control.millis())
             if (left == true) {
-                left = false
+                motor_run(-130, 100)
+                basic.pause(150)
+                motor_run(100, 120)
+                basic.pause(150)
+            } else if (right == true) {
+                motor_run(80, -150)
+                basic.pause(150)
+                motor_run(100, 120)
+                basic.pause(150)
+            } else {
+                motor_run(100, 120)
+                basic.pause(150)
             }
             
+        } else if (pins.digitalReadPin(DigitalPin.P13) == 0) {
+            P8_time = control.millis()
             // print(control.millis())
-            // 
-            if (control.millis() - P15_time <= 550 || control.millis() - both_time <= 550) {
-                counter += 1
-            } else {
-                counter = 0
-            }
-            
-            if (counter == 2) {
-                console.log(counter)
-                counter = 0
-                PCAmotor.MotorRun(PCAmotor.Motors.M1, 100)
-                PCAmotor.MotorRun(PCAmotor.Motors.M4, 100)
-            } else {
-                P8_time = control.millis()
-                PCAmotor.MotorRun(PCAmotor.Motors.M1, 100)
-                PCAmotor.MotorRun(PCAmotor.Motors.M4, -120)
-            }
-            
-        } else if (pins.digitalReadPin(DigitalPin.P15) == 1) {
-            // left = True
-            // if right == True:
-            //     right = False
-            if (control.millis() - P8_time <= 550 || control.millis() - both_time <= 550) {
-                counter += 1
-            } else {
-                counter = 0
-            }
-            
-            if (counter == 2) {
-                console.log(counter)
-                counter = 0
-                PCAmotor.MotorRun(PCAmotor.Motors.M1, 100)
-                PCAmotor.MotorRun(PCAmotor.Motors.M4, 100)
-            } else {
-                P15_time = control.millis()
-                PCAmotor.MotorRun(PCAmotor.Motors.M1, -100)
-                PCAmotor.MotorRun(PCAmotor.Motors.M4, 100)
-            }
-            
+            motor_run(100, -80)
+        } else if (pins.digitalReadPin(DigitalPin.P15) == 0) {
+            motor_run(-80, 120)
+        } else if (pins.digitalReadPin(DigitalPin.P8) == 0) {
+            motor_run(100, 120)
         }
         
     }
