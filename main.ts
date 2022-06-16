@@ -5,6 +5,7 @@ let R_sensor = DigitalPin.P13
 let F_sensor = DigitalPin.P8
 let prevodovka = 0
 // 0 - manual, 1 - automat
+let sonarr = 0
 let pojistka = false
 // pojistka pro zatáčení
 let speed = 1.0
@@ -27,17 +28,14 @@ function objetí() {
     motor_run(120, -255)
     basic.pause(200)
     motor_run(120, 255)
-    basic.pause(1000)
-    motor_run(-100, 200)
-    basic.pause(250)
+    basic.pause(700)
+    motor_run(-80, 180)
+    basic.pause(350)
     motor_run(120, 255)
-    basic.pause(1300)
-    motor_run(-100, 200)
-    basic.pause(250)
-    motor_run(140, 255)
-    basic.pause(500)
-    motor_run(120, -255)
-    basic.pause(200)
+    basic.pause(800)
+    motor_run(-80, 180)
+    basic.pause(300)
+    motor_run(120, 255)
 }
 
 bluetooth.onBluetoothConnected(function on_bluetooth_connected() {
@@ -74,6 +72,16 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
         }
         
         whaleysans.showNumber(prevodovka)
+    }
+    
+    // zapinani/vypinani sonaru
+    if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_2_DOWN) {
+        if (sonarr == 0) {
+            sonarr = 1
+        } else {
+            sonarr = 0
+        }
+        
     }
     
     // manualni rizeni
@@ -115,7 +123,7 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_UP && pojistka == true) {
             motor_run(120, 255, speed)
         } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_C_UP && pojistka == true) {
-            motor_run(120, 255, speed)
+            motor_run(85, 255, speed)
         }
         
         if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_D_DOWN && pojistka == true) {
@@ -153,8 +161,12 @@ control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EV
 forever(function ovladani_forev() {
     
     if (prevodovka == 1) {
-        if (sonar.ping(DigitalPin.P0, DigitalPin.P1, PingUnit.Centimeters) <= 15) {
-            objetí()
+        if (sonarr == 1) {
+            if (sonar.ping(DigitalPin.P2, DigitalPin.P1, PingUnit.Centimeters) <= 13) {
+                sonarr = 0
+                objetí()
+            }
+            
         } else if (pins.digitalReadPin(F_sensor) == 0 && pins.digitalReadPin(R_sensor) == 0 && pins.digitalReadPin(L_sensor) == 0) {
             // elif pins.digital_read_pin(F_sensor) == 1 and pins.digital_read_pin(L_sensor) == 1:
             //     both_time=control.millis()

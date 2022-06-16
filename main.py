@@ -4,6 +4,7 @@ L_sensor = DigitalPin.P15
 R_sensor = DigitalPin.P13
 F_sensor = DigitalPin.P8
 prevodovka = 0 #0 - manual, 1 - automat
+sonarr = 0
 pojistka = False #pojistka pro zatáčení
 speed=1.0
 
@@ -26,17 +27,16 @@ def objetí():
     motor_run(120,-255)
     basic.pause(200)
     motor_run(120,255)
-    basic.pause(1000)
-    motor_run(-100,200)
-    basic.pause(250)
+    basic.pause(700)
+    motor_run(-80,180)
+    basic.pause(350)
     motor_run(120,255)
-    basic.pause(1300)
-    motor_run(-100,200)
-    basic.pause(250)
-    motor_run(140,255)
-    basic.pause(500)
-    motor_run(120,-255)
-    basic.pause(200)
+    basic.pause(800)
+    motor_run(-80,180)
+    basic.pause(300)
+    motor_run(120,255)
+
+
 
 def on_bluetooth_connected():
     basic.show_icon(IconNames.HAPPY)
@@ -63,7 +63,7 @@ control.in_background(onIn_background)
 
 
 def on_mes_dpad_controller_id_microbit_evt():
-    global prevodovka, pojistka, left, right, speed
+    global prevodovka, pojistka, left, right, speed, sonarr
     #prepinani prevodovky
     if control.event_value() == EventBusValue.MES_DPAD_BUTTON_1_DOWN:
         if prevodovka == 0:
@@ -73,6 +73,12 @@ def on_mes_dpad_controller_id_microbit_evt():
             prevodovka = 0
             motor_run(0, 0)
         whaleysans.show_number(prevodovka)
+    #zapinani/vypinani sonaru
+    if control.event_value() == EventBusValue.MES_DPAD_BUTTON_2_DOWN:
+        if sonarr == 0:
+            sonarr = 1
+        else:
+            sonarr = 0
     #manualni rizeni
     if control.event_value() == EventBusValue.MES_DPAD_BUTTON_3_DOWN:
         speed -= 0.05
@@ -106,7 +112,7 @@ def on_mes_dpad_controller_id_microbit_evt():
         elif control.event_value() == EventBusValue.MES_DPAD_BUTTON_D_UP and pojistka == True:
             motor_run(120, 255, speed)
         elif control.event_value() == EventBusValue.MES_DPAD_BUTTON_C_UP and pojistka == True:
-            motor_run(120, 255, speed)
+            motor_run(85, 255, speed)
         if control.event_value() == EventBusValue.MES_DPAD_BUTTON_D_DOWN and pojistka == True:
             motor_run(120, 125, speed)
         elif control.event_value() == EventBusValue.MES_DPAD_BUTTON_C_DOWN and pojistka == True:
@@ -133,11 +139,13 @@ control.on_event(EventBusSource.MES_DPAD_CONTROLLER_ID,EventBusValue.MICROBIT_EV
 
 #autonomni rizeni
 def ovladani_forev():
-    global prevodovka, left, right, speed
+    global prevodovka, left, right, speed, sonarr
     
     if prevodovka == 1:
-        if sonar.ping(DigitalPin.P0, DigitalPin.P1, PingUnit.CENTIMETERS)<= 15:
-            objetí()
+        if sonarr == 1:
+            if sonar.ping(DigitalPin.P2, DigitalPin.P1, PingUnit.CENTIMETERS)<= 13:
+                sonarr=0
+                objetí()
        
         #elif pins.digital_read_pin(F_sensor) == 1 and pins.digital_read_pin(L_sensor) == 1:
         #    both_time=control.millis()
